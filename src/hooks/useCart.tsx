@@ -1,7 +1,7 @@
-import { createContext, ReactNode, useContext, useState } from 'react';
-import { toast } from 'react-toastify';
-import { api } from '../services/api';
-import { Product, Stock } from '../types';
+import { createContext, ReactNode, useContext, useState } from "react";
+import { toast } from "react-toastify";
+import { api } from "../services/api";
+import { Product, Stock } from "../types";
 
 interface CartProviderProps {
   children: ReactNode;
@@ -23,28 +23,71 @@ const CartContext = createContext<CartContextData>({} as CartContextData);
 
 export function CartProvider({ children }: CartProviderProps): JSX.Element {
   const [cart, setCart] = useState<Product[]>(() => {
-    // const storagedCart = Buscar dados do localStorage
+    const storagedCart = localStorage.getItem("@RocketShoes:cart");
 
-    // if (storagedCart) {
-    //   return JSON.parse(storagedCart);
-    // }
+    if (storagedCart) {
+      return JSON.parse(storagedCart);
+    }
 
     return [];
   });
 
   const addProduct = async (productId: number) => {
     try {
-      // TODO
+      const updatedCart = [...cart];
+
+      //Verificar se o produto que está sendo adicionado já está no carrinho
+      const productExists = updatedCart.find(
+        (product) => product.id === productId
+      );
+
+      //Pega os dados do estoque do produto na API
+      const stock = await api.get(`/stock/${productId}`);
+
+      //Quantidade total de Estoque
+      const stockAmount = stock.data.amount;
+
+      //Quanto já está no carrinho
+      const currentAmount = productExists ? productExists.amount : 0;
+
+      //Quantidade total comprada atualizada
+      const amount = currentAmount + 1;
+
+      if (amount > stockAmount) {
+        toast.error("Quantidade solicitada fora de estoque");
+        return;
+      }
+
+      //Atualiza o Carrinho
+      if (productExists) {
+        productExists.amount = amount;
+      } else {
+        //Pega os dados do produto na API
+        const product = await api.get(`/products/${productId}`);
+
+        //Cria um objeto com todos os campos do Produto, acrescentando o amount
+        const newProduct = {
+          ...product.data,
+          amount: 1,
+        };
+
+        updatedCart.push(newProduct);
+      }
+
+      setCart(updatedCart);
+
+      //Salva o carrinho no localStorage
+      localStorage.setItem("@RocketShoes:cart", JSON.stringify(updatedCart));
     } catch {
-      // TODO
+      toast.error("Erro na adição do produto");
     }
   };
 
   const removeProduct = (productId: number) => {
     try {
-      // TODO
+      
     } catch {
-      // TODO
+     
     }
   };
 
@@ -53,9 +96,9 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     amount,
   }: UpdateProductAmount) => {
     try {
-      // TODO
+     
     } catch {
-      // TODO
+     
     }
   };
 
